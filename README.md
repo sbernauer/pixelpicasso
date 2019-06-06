@@ -1,7 +1,7 @@
-Sturmflut
-=========
+pixelpicasso
+============
 
-Sturmflut is a very fast pixelflut client with full IPv6 support written entirely in C.
+pixelpicasso is a very fast pixeldraw client with full IPv6 support written entirely in C.
 It can handle both ordinary image files and animations.
 
 # Compiling
@@ -16,7 +16,7 @@ Use ```make```.
 # Usage
 
 ```
-./sturmflut <host> [file to send] [-p <port>] [-i <0|1>] [-t <number of threads>] [-h]
+./pixelpicasso <host> [file to send] [-p <port>] [-i <0|1>] [-t <number of threads>] [-h]
 
 host: IP address of pixelflut server
 file to send: Image/Animation to show
@@ -26,11 +26,12 @@ file to send: Image/Animation to show
 -t: Number of threads used for flooding
 -h: Show usage
 ```
+Tipp: Only use one thread! (unless you can specify different pens)
 
 ## Example
 
 ```
-./sturmflut 127.0.0.1 animation.gif
+./pixelpicasso 127.0.0.1 animation.gif
 ```
 
 Searching for a fast pixelflut server? Check out [shoreline](https://github.com/TobleMiner/shoreline)

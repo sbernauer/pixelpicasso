@@ -1,0 +1,11 @@
+.*
+!.gitignore
+*.txt
+sturmflut
+*.out
+*.png
+*.jpg
+*.gif
+*.bmp
+
+pixelpicasso
