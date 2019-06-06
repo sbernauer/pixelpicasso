@@ -105,7 +105,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 1 %06x 0\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 1 %6x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -140,7 +140,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 -1 %06x 0\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 -1 %6x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -175,7 +175,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 1 0 %06x 0\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 1 0 %6x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -214,7 +214,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 		while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %06x 0\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %6x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
