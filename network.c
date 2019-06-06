@@ -69,6 +69,10 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 		commandCounter++;
 		y--;
 	}
+
+	// Move a bit up to compensate
+	commandCounter += 2;
+
 	x = 0;
 	y = 0; // Reset after calculation
 
@@ -209,9 +213,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 		while(true) {
 					max_print_size = data_alloc_size - offset;
-					if (y >= 0) {
-						pixel = src->pixels[y * width + x];
-					}
+					pixel = src->pixels[y * width + x];
 					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %06x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
@@ -237,6 +239,39 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				}
 
 
+
+	}
+
+	// Move a bit up to compensate
+	for (int i = 0; i < 2; i++) {
+
+
+
+		while(true) {
+					max_print_size = data_alloc_size - offset;
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 000000 0\n", penId);
+					if(print_size < 0) {
+						err = -EINVAL;
+						goto fail_data_alloc;
+					}
+					if(print_size < max_print_size) {
+						// First part of command setup
+						// We can't setup .data or .cmd here because data might be realloced
+						cmd = &commands[bufferCounter];
+						cmd->offset = offset;
+						cmd->length = print_size;
+						offset += print_size;
+						bufferCounter++;
+						break;
+					}
+					data_alloc_size += NUM_TEXT_BLOCK;
+					data_tmp = realloc(data, data_alloc_size);
+					if(!data_tmp) {
+						err = -ENOMEM;
+						goto fail_data_alloc;
+					}
+					data = data_tmp;
+				}
 
 	}
 
