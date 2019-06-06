@@ -16,7 +16,7 @@ Use ```make```.
 # Usage
 
 ```
-./pixelpicasso <host> [file to send] [-p <port>] [-i <0|1>] [-t <number of threads>] [-h]
+./pixelpicasso <host> [file to send] [-p <port>] [-i <0|1>] [-t <number of threads>] [-h] [-d <pen-id>]
 
 host: IP address of pixelflut server
 file to send: Image/Animation to show
@@ -24,6 +24,7 @@ file to send: Image/Animation to show
 -p: Server port
 -i: Ignore broken broken pipe
 -t: Number of threads used for flooding
+-d The id of the pen to use to draw
 -h: Show usage
 ```
 Tipp: Only use one thread! (unless you can specify different pens)
