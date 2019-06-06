@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdbool.h>
@@ -68,6 +69,8 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 		commandCounter++;
 		y--;
 	}
+	x = 0;
+	y = 0; // Reset after calculation
 
 
 	dst->width = width;
@@ -89,7 +92,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 		goto fail_commands_alloc;
 	}
 
-	int bufferCounter = 0;
+	long bufferCounter = 0;
 	while(y < width) { // Dont print last line to save space in the buffer for returning to (0,0)
 		if (y % 2 == 0) {
 			while(x < height - 1) {
@@ -98,7 +101,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 1 %06x\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 1 %06x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -133,7 +136,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 -1 %06x\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 -1 %06x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -168,7 +171,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				while(true) {
 					max_print_size = data_alloc_size - offset;
 					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 1 0 %06x\n", penId, pixel.abgr >> 8);
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 1 0 %06x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -206,8 +209,10 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 		while(true) {
 					max_print_size = data_alloc_size - offset;
-					pixel = src->pixels[y * width + x];
-					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %06x\n", penId, pixel.abgr >> 8);
+					if (y >= 0) {
+						pixel = src->pixels[y * width + x];
+					}
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %06x 0\n", penId, pixel.abgr >> 8);
 					if(print_size < 0) {
 						err = -EINVAL;
 						goto fail_data_alloc;
@@ -235,8 +240,8 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 	}
 
-	fprintf(stderr, "\nAsserting %d == %d \n", bufferCounter, (int)dst->num_cmds);
-	assert(bufferCounter == (int)dst->num_cmds);
+	fprintf(stderr, "\nAsserting %ld == %ld \n", bufferCounter, (long)dst->num_cmds);
+	assert(bufferCounter == (long)dst->num_cmds);
 
 	dst->data = data;
 
@@ -388,6 +393,16 @@ reconnect:
 			}
 			offset += write_size;
 		}
+
+		// // Read incoming data to prevent bufffer from getting full
+		// int* buffer = 0;
+		// int len = 0;
+		// ioctl(sock, FIONREAD, &len);
+		// if (len > 0) {
+		// 	// This will consume up to buf_size bytes from the socket descriptor sock_fd without actually copying them to the buffer. 
+		// 	int n = recv(sock, buffer, len, MSG_TRUNC);
+		// 	fprintf(stderr, "Read %d bytes\n", n);
+		// }
 		// break; // TODO Delete break to make infinite loop
 	}
 
