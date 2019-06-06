@@ -32,26 +32,50 @@ void net_frame_free(struct net_frame* frame) {
 	free(frame->cmds);
 }
 
-int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigned int width, unsigned int height, bool monochrome, unsigned int offset_x, unsigned int offset_y, unsigned int sparse_perc) {
+int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigned int width, unsigned int height, bool monochrome, unsigned int offset_x, unsigned int offset_y, unsigned int sparse_perc, unsigned int penId) {
 	int err = 0;
-	size_t num_pixels = width * height, data_alloc_size, max_print_size, i;
+	size_t data_alloc_size, max_print_size, i;
 	ssize_t print_size;
 	struct pf_cmd* commands, *cmd;
 	char* data, *data_tmp;
 	off_t offset = 0;
-	unsigned int x, y, effective_x = 0, effective_y = 0;
+	unsigned int x = 0, y = 0;
 	struct img_pixel pixel;
 	struct net_frame* dst = malloc(sizeof(struct net_frame));
 	if(!dst) {
 		err = -ENOMEM;
 		goto fail;
 	}
+
+	int commandCounter = 0;
+	while(y < width) {
+			if (y % 2 == 0) {
+				while(x < height - 1) {
+					commandCounter++;
+					x++;
+				}
+			} else {
+				while(x > 0) {
+					commandCounter++;
+					x--;
+				}
+			}
+			commandCounter++;
+			y++;
+	}
+	y--; // Because of increment at end of loop
+	while(y > 0) {
+		commandCounter++;
+		y--;
+	}
+
+
 	dst->width = width;
 	dst->height = height;
 	dst->duration_ms = src->duration_ms;
-	dst->num_cmds = num_pixels;
+	dst->num_cmds = commandCounter;
 
-	commands = malloc(num_pixels * sizeof(struct pf_cmd));
+	commands = malloc(dst->num_cmds * sizeof(struct pf_cmd));
 	if(!commands) {
 		err = -ENOMEM;
 		goto fail_frame_alloc;
@@ -65,46 +89,158 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 		goto fail_commands_alloc;
 	}
 
-	for(y = 0; y < height; y++) {
-		for(x = 0; x < width; x++) {
-			if((y * width + x) % 100 >= sparse_perc) {
-				continue;
+	int bufferCounter = 0;
+	while(y < width) { // Dont print last line to save space in the buffer for returning to (0,0)
+		if (y % 2 == 0) {
+			while(x < height - 1) {
+
+
+				while(true) {
+					max_print_size = data_alloc_size - offset;
+					pixel = src->pixels[y * width + x];
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 1 %06x\n", penId, pixel.abgr >> 8);
+					if(print_size < 0) {
+						err = -EINVAL;
+						goto fail_data_alloc;
+					}
+					if(print_size < max_print_size) {
+						// First part of command setup
+						// We can't setup .data or .cmd here because data might be realloced
+						cmd = &commands[bufferCounter];
+						cmd->offset = offset;
+						cmd->length = print_size;
+						offset += print_size;
+						bufferCounter++;
+						break;
+					}
+					data_alloc_size += NUM_TEXT_BLOCK;
+					data_tmp = realloc(data, data_alloc_size);
+					if(!data_tmp) {
+						err = -ENOMEM;
+						goto fail_data_alloc;
+					}
+					data = data_tmp;
+				}
+
+
+
+				x++;
 			}
-			while(true) {
-				max_print_size = data_alloc_size - offset;
-				pixel = src->pixels[y * width + x];
-				effective_x = pixel.x + offset_x;
-				effective_y = pixel.y + offset_y;
-				if(monochrome)
-					print_size = snprintf(data + offset, data_alloc_size - offset, "PX %u %u %u\n", effective_x, effective_y, !!pixel.abgr);
-				else
-					print_size = snprintf(data + offset, data_alloc_size - offset, "PX %u %u %08x\n", effective_x, effective_y, pixel.abgr);
-				if(print_size < 0) {
-					err = -EINVAL;
-					goto fail_data_alloc;
+		} else {
+			while(x > 0) {
+
+
+				while(true) {
+					max_print_size = data_alloc_size - offset;
+					pixel = src->pixels[y * width + x];
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 0 -1 %06x\n", penId, pixel.abgr >> 8);
+					if(print_size < 0) {
+						err = -EINVAL;
+						goto fail_data_alloc;
+					}
+					if(print_size < max_print_size) {
+						// First part of command setup
+						// We can't setup .data or .cmd here because data might be realloced
+						cmd = &commands[bufferCounter];
+						cmd->offset = offset;
+						cmd->length = print_size;
+						offset += print_size;
+						bufferCounter++;
+						break;
+					}
+					data_alloc_size += NUM_TEXT_BLOCK;
+					data_tmp = realloc(data, data_alloc_size);
+					if(!data_tmp) {
+						err = -ENOMEM;
+						goto fail_data_alloc;
+					}
+					data = data_tmp;
 				}
-				if(print_size < max_print_size) {
-					// First part of command setup
-					// We can't setup .data or .cmd here because data might be realloced
-					cmd = &commands[y * width + x];
-					cmd->offset = offset;
-					cmd->length = print_size;
-					offset += print_size;
-					break;
-				}
-				data_alloc_size += NUM_TEXT_BLOCK;
-				data_tmp = realloc(data, data_alloc_size);
-				if(!data_tmp) {
-					err = -ENOMEM;
-					goto fail_data_alloc;
-				}
-				data = data_tmp;
+
+
+
+				x--;
 			}
 		}
+
+
+
+				while(true) {
+					max_print_size = data_alloc_size - offset;
+					pixel = src->pixels[y * width + x];
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d 1 0 %06x\n", penId, pixel.abgr >> 8);
+					if(print_size < 0) {
+						err = -EINVAL;
+						goto fail_data_alloc;
+					}
+					if(print_size < max_print_size) {
+						// First part of command setup
+						// We can't setup .data or .cmd here because data might be realloced
+						cmd = &commands[bufferCounter];
+						cmd->offset = offset;
+						cmd->length = print_size;
+						offset += print_size;
+						bufferCounter++;
+						break;
+					}
+					data_alloc_size += NUM_TEXT_BLOCK;
+					data_tmp = realloc(data, data_alloc_size);
+					if(!data_tmp) {
+						err = -ENOMEM;
+						goto fail_data_alloc;
+					}
+					data = data_tmp;
+				}
+
+
+		y++;
 	}
+	y--; // Because of increment at end of loop
+
+	assert(x == 0);
+	assert(y == height - 1);
+
+	while(y > 0) {
+		y--;
+
+
+		while(true) {
+					max_print_size = data_alloc_size - offset;
+					pixel = src->pixels[y * width + x];
+					print_size = snprintf(data + offset, data_alloc_size - offset, "MOVE %d -1 0 %06x\n", penId, pixel.abgr >> 8);
+					if(print_size < 0) {
+						err = -EINVAL;
+						goto fail_data_alloc;
+					}
+					if(print_size < max_print_size) {
+						// First part of command setup
+						// We can't setup .data or .cmd here because data might be realloced
+						cmd = &commands[bufferCounter];
+						cmd->offset = offset;
+						cmd->length = print_size;
+						offset += print_size;
+						bufferCounter++;
+						break;
+					}
+					data_alloc_size += NUM_TEXT_BLOCK;
+					data_tmp = realloc(data, data_alloc_size);
+					if(!data_tmp) {
+						err = -ENOMEM;
+						goto fail_data_alloc;
+					}
+					data = data_tmp;
+				}
+
+
+
+	}
+
+	fprintf(stderr, "\nAsserting %d == %d \n", bufferCounter, (int)dst->num_cmds);
+	assert(bufferCounter == (int)dst->num_cmds);
+
 	dst->data = data;
 
-	for(i = 0; i < num_pixels; i++) {
+	for(i = 0; i < dst->num_cmds; i++) {
 		// Second part of command setup
 		// data is now finalized, we can set .data and calculate .cmd
 		cmd = &commands[i];
@@ -135,7 +271,7 @@ void net_free_animation(struct net_animation* anim) {
 	free(anim);
 }
 
-int net_animation_to_net_animation(struct net_animation** ret, struct img_animation* src, bool monochrome, unsigned int offset_x, unsigned int offset_y, unsigned int sparse_perc, progress_cb progress_cb) {
+int net_animation_to_net_animation(struct net_animation** ret, struct img_animation* src, bool monochrome, unsigned int offset_x, unsigned int offset_y, unsigned int sparse_perc, progress_cb progress_cb, unsigned int penId) {
 	int err = 0;
 	size_t i;
 	struct timespec last_progress;
@@ -156,7 +292,7 @@ int net_animation_to_net_animation(struct net_animation** ret, struct img_animat
 		last_progress = progress_limit_rate(progress_cb, 0, src->num_frames, PROGESS_INTERVAL_DEFAULT, NULL);
 	}
 	for(i = 0; i < src->num_frames; i++) {
-		err = net_frame_to_net_frame(&dst->frames[i], &src->frames[i], src->width, src->height, monochrome, offset_x, offset_y, sparse_perc);
+		err = net_frame_to_net_frame(&dst->frames[i], &src->frames[i], src->width, src->height, monochrome, offset_x, offset_y, sparse_perc, penId);
 		dst->num_frames++;
 		if(err) {
 			goto fail_frames_alloc;
@@ -230,11 +366,13 @@ reconnect:
 
 	while(true) {
 		frame = net->current_frame;
-		num_cmds = frame->width * frame->height;
+		num_cmds = frame->num_cmds;
 		cmds_per_thread = num_cmds / net->num_send_threads;
 		initial_offset = frame->cmds[thread_id * cmds_per_thread].offset;
 		length = frame->cmds[(thread_id + 1) * cmds_per_thread - 1].offset - initial_offset;
 		offset = 0;
+		// fprintf(stderr, "Flood %ld commands from %ld with length %ld\n", cmds_per_thread, initial_offset, length);
+		assert((long)length > offset);
 		while(offset < length) {
 			write_size = write(sock, frame->data + initial_offset + offset, length - offset);
 			if(write_size < 0) {
@@ -250,6 +388,7 @@ reconnect:
 			}
 			offset += write_size;
 		}
+		// break; // TODO Delete break to make infinite loop
 	}
 
 fail:

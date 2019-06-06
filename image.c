@@ -174,28 +174,28 @@ void image_free_animation(struct img_animation* anim) {
 }
 
 
-void image_shuffle_frame(struct img_frame* frame) {
-	size_t num_pixels = frame->num_pixels, i, pos1, pos2;
-	struct img_pixel pixel;
-	for(i = 0; i < num_pixels; i++) {
-		pos1 = rand() % num_pixels;
-		pos2 = rand() % num_pixels;
-		pixel = frame->pixels[pos2];
-		frame->pixels[pos2] = frame->pixels[pos1];
-		frame->pixels[pos1] = pixel;
-	}
-}
+// void image_shuffle_frame(struct img_frame* frame) {
+// 	size_t num_pixels = frame->num_pixels, i, pos1, pos2;
+// 	struct img_pixel pixel;
+// 	for(i = 0; i < num_pixels; i++) {
+// 		pos1 = rand() % num_pixels;
+// 		pos2 = rand() % num_pixels;
+// 		pixel = frame->pixels[pos2];
+// 		frame->pixels[pos2] = frame->pixels[pos1];
+// 		frame->pixels[pos1] = pixel;
+// 	}
+// }
 
-void image_shuffle_animation(struct img_animation* anim, progress_cb progress_cb) {
-	struct timespec last_progress;
-	size_t num_frames = anim->num_frames, i;
-	if(progress_cb) {
-		last_progress = progress_limit_rate(progress_cb, 0, num_frames, PROGESS_INTERVAL_DEFAULT, NULL);
-	}
-	for(i = 0; i < num_frames; i++) {
-		image_shuffle_frame(&anim->frames[i]);
-		if(progress_cb) {
-			last_progress = progress_limit_rate(progress_cb, i + 1, num_frames, PROGESS_INTERVAL_DEFAULT, &last_progress);
-		}
-	}
-}
+// void image_shuffle_animation(struct img_animation* anim, progress_cb progress_cb) {
+// 	struct timespec last_progress;
+// 	size_t num_frames = anim->num_frames, i;
+// 	if(progress_cb) {
+// 		last_progress = progress_limit_rate(progress_cb, 0, num_frames, PROGESS_INTERVAL_DEFAULT, NULL);
+// 	}
+// 	for(i = 0; i < num_frames; i++) {
+// 		// image_shuffle_frame(&anim->frames[i]);
+// 		if(progress_cb) {
+// 			last_progress = progress_limit_rate(progress_cb, i + 1, num_frames, PROGESS_INTERVAL_DEFAULT, &last_progress);
+// 		}
+// 	}
+// }

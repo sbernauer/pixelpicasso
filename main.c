@@ -21,7 +21,7 @@
 #include "image.h"
 #include "network.h"
 
-#define NUM_THREADS_DEFAULT 10
+#define NUM_THREADS_DEFAULT 1
 #define MAX_CONNECTIONS_PER_ADDRESS 100
 #define SHARED_CONNECTIONS 0
 
@@ -30,6 +30,8 @@
 #define FILENAME_DEFAULT "image.png"
 
 #define NUM_MY_ADDRS 0
+
+#define DEFAULT_PEN_ID 0
 
 int ignore_broken_pipe = IGNORE_BROKEN_PIPE_DEFAULT;
 
@@ -43,7 +45,7 @@ void doshutdown(int signal) {
 
 static void print_usage(char* binary) {
 	fprintf(stderr, "USAGE: %s <host> [file to send] [-p <port>] [-a <source ip address>] "
-			"[-i <0|1>] [-t <number of threads>] [-m] [-o <offset-spec>] [-s <percentage>] [-h]\n", binary);
+			"[-i <0|1>] [-t <number of threads>] [-m] [-o <offset-spec>] [-s <percentage>] [-d <pen-id>] [-h]\n", binary);
 }
 
 static void generic_progress_cb(size_t current, size_t total, const char* fmt) {
@@ -75,6 +77,7 @@ int main(int argc, char** argv)
 	bool monochrome = false;
 	char *host, *port = PORT_DEFAULT;
 	unsigned int offset_x = 0, offset_y = 0, sparse_perc = 100;
+	unsigned int penId = DEFAULT_PEN_ID;
 
 	struct img_ctx* img_ctx;
 	struct img_animation* anim;
@@ -82,7 +85,7 @@ int main(int argc, char** argv)
 	struct net* net;
 	struct addrinfo* host_addr;
 
-	while((opt = getopt(argc, argv, "p:i:t:hmo:s:")) != -1) {
+	while((opt = getopt(argc, argv, "p:i:t:hmo:s:d:")) != -1) {
 		switch(opt) {
 			case('p'):
 				port = optarg;
@@ -116,6 +119,9 @@ int main(int argc, char** argv)
 					exit(1);
 				}
 				break;
+			case('d'):
+				penId = atoi(optarg);
+				break;
 			default:
 				print_usage(argv[0]);
 				exit(1);
@@ -134,7 +140,7 @@ int main(int argc, char** argv)
 		filename = argv[optind];
 	}
 
-	printf("Will send '%s' to %s:%s\n", filename, host, port);
+	printf("Will send '%s' to %s:%s with penId %d\n", filename, host, port, penId);
 
 	if(SHARED_CONNECTIONS)
 		return -EINVAL;
@@ -179,15 +185,20 @@ int main(int argc, char** argv)
 		goto fail_image_alloc;
 	}
 
+	if(anim->height % 2 != 0) {
+		fprintf(stderr, "The picture must have an even height. Sorry for this. This is because the pen must travel back. TODO: Can be implemented later on in network.c\n");
+		goto fail_anim_convert;
+	}
+
 	printf("Animation loaded\n");
 	printf("Shuffling animation...\n");
 
-	image_shuffle_animation(anim, shuffle_progress_cb);
+	// image_shuffle_animation(anim, shuffle_progress_cb);
 
 	printf("Shuffling complete\n");
 	printf("Converting animation to pixelflut commands...\n");
 
-	if((err = net_animation_to_net_animation(&net_anim, anim, monochrome, offset_x, offset_y, sparse_perc, conversion_progress_cb))) {
+	if((err = net_animation_to_net_animation(&net_anim, anim, monochrome, offset_x, offset_y, sparse_perc, conversion_progress_cb, penId))) {
 		fprintf(stderr, "Failed to convert animation to pixelflut commands: %s\n", strerror(-err));
 		goto fail_anim_load;
 	}
