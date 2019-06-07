@@ -49,33 +49,39 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 	}
 
 	int commandCounter = 0;
-	while(y < width) {
-			if (y % 2 == 0) {
-				while(x < height - 1) {
+	while(x < width) {
+			if (x % 2 == 0) {
+				while(y < height - 1) {
 					commandCounter++;
-					x++;
+					y++;
 				}
 			} else {
-				while(x > 0) {
+				while(y > 0) {
 					commandCounter++;
-					x--;
+					y--;
 				}
 			}
 			commandCounter++;
-			y++;
+			x++;
 	}
-	y--; // Because of increment at end of loop
-	while(y > 0) {
+	x--; // Because of increment at end of loop
+
+	assert(y == 0);
+	assert(x == width - 1);
+
+	while(x > 0) {
 		commandCounter++;
-		y--;
+		x--;
 	}
 
 	// Move a bit up to compensate
 	commandCounter += 2;
 
+	assert(x == 0);
+	assert(y == 0);
+
 	x = 0;
 	y = 0; // Reset after calculation
-
 
 	dst->width = width;
 	dst->height = height;
@@ -97,9 +103,9 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 	}
 
 	long bufferCounter = 0;
-	while(y < width) { // Dont print last line to save space in the buffer for returning to (0,0)
-		if (y % 2 == 0) {
-			while(x < height - 1) {
+	while(x < width) { // Dont print last line to save space in the buffer for returning to (0,0)
+		if (x % 2 == 0) {
+			while(y < height - 1) {
 
 
 				while(true) {
@@ -131,10 +137,10 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 
 
-				x++;
+				y++;
 			}
 		} else {
-			while(x > 0) {
+			while(y > 0) {
 
 
 				while(true) {
@@ -166,7 +172,7 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 
 
-				x--;
+				y--;
 			}
 		}
 
@@ -200,15 +206,15 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 				}
 
 
-		y++;
+		x++;
 	}
-	y--; // Because of increment at end of loop
+	x--; // Because of increment at end of loop
 
-	assert(x == 0);
-	assert(y == height - 1);
+	assert(y == 0);
+	assert(x == width - 1);
 
-	while(y > 0) {
-		y--;
+	while(x > 0) {
+		x--;
 
 
 		while(true) {
@@ -241,6 +247,10 @@ int net_frame_to_net_frame(struct net_frame* ret, struct img_frame* src, unsigne
 
 
 	}
+
+	assert(x == 0);
+	assert(y == 0);
+
 
 	// Move a bit up to compensate
 	for (int i = 0; i < 2; i++) {
